@@ -1,0 +1,5 @@
+*.egg-info
+venv
+
+# this is maintainer repositories, that should be stored locally
+.vss
