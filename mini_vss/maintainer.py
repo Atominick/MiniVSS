@@ -48,39 +48,37 @@ class VSSMaintainer:
     def __init__(self) -> None:
         self.configs = configs.VSSConfigs(working_folder)
 
-    def generate_client_config_file(self, platform, dst):
+
+    def generate_client_config_file(self, dst):
         public_key_path = os.path.join(working_folder, signature.standart_public_key_name)
         public_key = signature.load_key(public_key_path)
         public_key_str = signature.key_to_str(public_key)
-        # print(public_key_str)
 
-        platform_configs: configs.VSSPlatformConfigs = None
-
+        content = ""
         for pc in self.configs.platform_configs:
-            if pc.name == platform:
-                platform_configs = pc
-                print("\"{}\" platform found".format(platform))
+            print("\"{}\" platform found".format(pc))
 
-        if platform_configs:
-            header = "from mini_vss.configs import VSSClientConfig\n\nclass VSSClientConfigInitialized(VSSClientConfig):"
-            content = "\n{}\n    name = \"{}\"\n    url = \"{}\"\n    public_key = \'\'\'{}\'\'\'\n".format(
-                header, platform_configs.name, platform_configs.remote_path, public_key_str)
+            header = "class VSS{}ClientConfig(object):".format(pc.name.capitalize())
+            content += "\n\n{}\n    name = \"{}\"\n    url = \"{}\"\n    public_key = \'\'\'{}\'\'\'\n".format(
+                header, pc.name, pc.remote_path, public_key_str)
 
-            path = os.path.join(dst, "vss_client_configs.py")
-            with open(path, 'w') as f:
-                f.write(content)
-                print("{} written".format(path))
-        else:
-            print("No such platform!")
+        path = os.path.join(dst, "client_config.py")
+        with open(path, 'w') as f:
+            f.write(content)
+            print("{} written".format(path))
 
     def add_version(self, version_name, platform=""):
         def copy_working_file(src_file, dst_folder):
             s_filename, s_file_extension = os.path.splitext(os.path.basename(src_file))
-            dst_filename = s_filename + "_" + str(version_name) + s_file_extension
+            dst_filename = s_filename + "_" + str(version_name.replace(".", "_")) + s_file_extension
             dst = os.path.join(dst_folder, dst_filename)
             print("copying {} as {}".format(src_file, dst))
-            shutil.copy(src_file, dst)
-            # print("copying finished!")
+            try:
+                shutil.copy(src_file, dst)
+                # print("copying finished!")
+            except FileNotFoundError:
+                print("No {} file found!".format(src_file))
+                sys.exit(0)
             return dst
 
         private_key_path = os.path.join(working_folder, signature.standart_private_key_name)
@@ -103,6 +101,10 @@ class VSSMaintainer:
                     current_platform.add_version(version_name, copied_filepath, private_key)
                     current_platform.save(info_filepath)
 
+    # def add_remote(self, remote_url):
+    #     self.configs.remote_urls.append(remote_url)
+    #     self.configs.save()
+
     def add_platform(self, platform_name, working_file, remote=""):
         platform_path = os.path.join(working_folder, platforms_folder_name, platform_name)
         create_dir(platform_path)
@@ -111,7 +113,6 @@ class VSSMaintainer:
         public_key = signature.load_key(relative_public_key_path)
 
         info_filepath = os.path.join(platform_path, "info.json")
-
         platform_params = { "name": platform_name,
                             "filename": os.path.basename(working_file),
                             "versions": [] }
@@ -119,7 +120,7 @@ class VSSMaintainer:
         new_platform.save(info_filepath)
         print("Platform \"{}\" created.".format(platform_name))
 
-        remote_path = remote or urllib.parse.urljoin(self.configs.basic_remote, platform_name)
+        remote_path = remote or urllib.parse.urljoin(self.configs.basic_remote, platform_name + '/')
         platform_c_params = {
             "name": platform_name,
             "local_path": platform_path,
@@ -130,86 +131,3 @@ class VSSMaintainer:
         self.configs.save()
 
         print("Platform data saved to config".format())
-
-    # def add_remote(self, remote_url):
-    #     self.configs.remote_urls.append(remote_url)
-    #     self.configs.save()
-
-
-'''
-def load_versions():
-         # json.dump(
-        #     {"a": 1, "b": 2},
-        #     open("sample.json", "w"))
-    if os.path.isfile(json_path):
-        print("Reading current versions")
-    else:
-        print("No versions yet. Creating")
-
-def add_version(version=None, file=None):
-    # check if there isn`t this version yet
-    # versions
-
-    if not file:
-        # get filename from configured location
-        filename = 'Readme.md'
-
-    print("Adding {} version".format(version))
-    sign = signature.sign(filename)
-    # move file
-    # add record to versions.json
-    # if signature.('Readme.md', signature):
-        # print("Ok")
-    print("Signature is: {}".format(signature))
-
-def serialize():
-    versions_dicts = []
-    for v in versions:
-        versions_dicts.append(v.to_dict())
-
-    parent_dict = {
-        "app_name": app_name,
-        # "author": author,
-        "last_update": str(datetime.now()),
-        "available_versions": versions_dicts
-    }
-
-    json_string = json.dumps(parent_dict, indent=4)
-    return json_string
-
-def init(force_reinit=False):
-    def init_client_config_file(app_name='xxx', update_urls=[], public_key='', timeout=30, retries=3):
-        class_start = "class ClientConfig(object):"
-        attr_dict = { "APP_NAME" : app_name, "UPDATE_URLS": update_urls, "MAX_DOWNLOAD_RETRIES": retries, "PUBLIC_KEY": public_key }
-        with open(os.path.join(working_folder, client_conf_filename), 'w') as f:
-            f.write(class_start)
-            for key in attr_dict:
-                value = attr_dict[key]
-
-                # put quotes around strings
-                if isinstance(value, str):
-                    value = "\"{}\"".format(value)
-
-                new_str = "\n    {} = {}".format(key, value)
-                f.write(new_str)
-
-    if force_reinit:
-        if os.path.isdir(working_folder):
-            print("Deleting old {}".format(working_folder))
-            try:
-                shutil.rmtree(working_folder)
-            except OSError as e:
-                print("Error: %s - %s." % (e.filename, e.strerror))
-
-    try:
-        os.mkdir(working_folder)
-        print("Directory {} created".format(working_folder))
-    except FileExistsError:
-        print("Directory {} exists".format(working_folder))
-        return
-
-    print("Initializing...".format(working_folder))
-    # init_client_config_file()
-    # platform.init()
-    signature.create_keypair()
-'''

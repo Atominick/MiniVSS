@@ -18,11 +18,10 @@ class VSSClient:
     def __init__(self, configs: VSSClientConfig):
         self.configs = configs
         self.public_key = signature.str_to_key(self.configs.public_key)
-        self.info_file_url = urllib.parse.urljoin(self.configs.url, "info.json")
-        self.platform = None
-        self.update()
 
         self.updating_callback: Callable[[int], None] = None
+        self.platform = VSSPlatform()
+        self.update()
 
 
     def download_version_file(self, url, dest):
@@ -30,7 +29,6 @@ class VSSClient:
         with requests.get(url, stream=True) as r:
             lenght = int(r.headers.get('content-length'))
             length_in_chunks = lenght / chunk_size
-
             r.raise_for_status()
             with open(dest, 'wb') as f:
                 chunks = 0
@@ -48,8 +46,12 @@ class VSSClient:
                     f.write(chunk)
 
     def update(self):
-        json_data = requests.get(self.info_file_url, timeout=5).json()
-        self.platform = VSSPlatform(json_data)
+        try:
+            info_file_url = urllib.parse.urljoin(self.configs.url, "info.json")
+            json_data = requests.get(info_file_url, timeout=5).json()
+            self.platform = VSSPlatform(json_data)
+        except Exception:
+            print("Can`t load data from {}...".format(info_file_url))
 
     def find_vss_version(self, vss_version_or_str: Union[VSSVersion, str]) -> VSSVersion:
         if isinstance(vss_version_or_str, str):
@@ -82,6 +84,7 @@ class VSSClient:
 
     def upgrade_to(self, version_to_install: Union[VSSVersion, str]):
         version_to_install = self.find_vss_version(version_to_install)
+
         temp_filepath = self.download(version_to_install)
         program_name = self.platform.dest_filename
         os.rename(temp_filepath, program_name)
@@ -100,7 +103,8 @@ class VSSClient:
             print("{} not found".format(self.platform.dest_filename))
 
     def get_latest_version(self) -> VSSVersion:
-        return max(self.platform.versions)
+        if self.platform.versions:
+            return max(self.platform.versions)
 
     def upgrade_to_latest(self):
         cv = self.get_current_version()

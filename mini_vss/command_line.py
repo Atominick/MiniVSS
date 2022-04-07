@@ -7,7 +7,6 @@ from . import maintainer
 
 def parse_input():
     parser = argparse.ArgumentParser(description='Mini Version Sharing System')
-    parser.add_argument('--foo', action='store_true', help='foo help')
 
     subparsers = parser.add_subparsers(dest='command', help='sub-command help')
 
@@ -22,10 +21,9 @@ def parse_input():
     parser_add_platform.add_argument('working_file', help='file that will be fixed every version')
 
     parser_client_config = subparsers.add_parser('generate_client_config', help='create a python file with data for VSSClient inside an app')
-    parser_client_config.add_argument('platform', help="a platform to generate")
 
     parser_add_version = subparsers.add_parser('fix', help='fix a new version')
-    parser_add_version.add_argument('--platform', help='concrete platform to fix in')
+    parser_add_version.add_argument('-p', '--platform', help='concrete platform to fix in')
     parser_add_version.add_argument('version_name', help='(semantic versioning)')
 
     args = parser.parse_args()
@@ -39,21 +37,18 @@ def main():
     args = parse_input()
     print(args)
 
+    m = maintainer.VSSMaintainer()
     if args.command == 'init':
         maintainer.init_vss_folder(args.force)
-        # if args.remote:
-            # maintainer.add_remote(args.remote)
-
-    m = maintainer.VSSMaintainer()
-    if args.command == 'add_platform':
+    elif args.command == 'add_platform':
         m.add_platform(args.name, args.working_file)
     elif args.command == 'fix':
         m.add_version(args.version_name, args.platform)
     elif args.command == 'generate_client_config':
-        m.generate_client_config_file(args.platform, "")
+        m.generate_client_config_file("")
     elif args.command == 'show':
         for p in m.configs.platform_configs:
             print("Platform {}:".format(p.name))
             for v in p.platform.versions:
                 print("\t- {}".format(v))
-            print("end\n")
+            # print("end\n")

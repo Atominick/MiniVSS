@@ -10,7 +10,6 @@ from semantic_version import Version
 # v.prerelease
 
 
-
 class VSSVersion:
     def __init__(self, version_data):
         self.version = Version(version_data["version"])

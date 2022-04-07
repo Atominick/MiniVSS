@@ -9,13 +9,15 @@ from .version import VSSVersion
 from . import signature
 
 
-
+standart_platform_params = {
+    "name": "No name",
+    "filename": "",
+    "versions": [] }
 class VSSPlatform:
-    def __init__(self, param_dict: dict):
+    def __init__(self, param_dict: dict = standart_platform_params):
         self.name = param_dict["name"]
         self.dest_filename = param_dict["filename"]
         self.versions: List[VSSVersion] = []
-
         version_list = param_dict['versions']
         for version_data in version_list:
             self.versions.append(VSSVersion(version_data))

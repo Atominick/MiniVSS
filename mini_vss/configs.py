@@ -1,7 +1,6 @@
 
 from typing import List
 import json
-import sys
 import os
 
 from .platform import VSSPlatform
@@ -16,7 +15,7 @@ class VSSClientConfig:
 
 class VSSPlatformConfigs:
     def __init__(self, params: dict):
-        self.name = params["name"]
+        self.name: str = params["name"]
         self.local_path = params["local_path"]
         self.remote_path = params["remote_path"]
         self.working_file = params["working_file"]
