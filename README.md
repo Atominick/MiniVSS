@@ -1,8 +1,6 @@
 # MiniVSS(Version Sharing System)
 
-> ### *Share your software versions to end users securely and easy!*
-
-## How it is done?
+## How is it done?
 * Maintainer creates repository with compiled (now only onefile) program versions
 * Every version is signing with private key
 * Generated folder loads to web-server
@@ -48,3 +46,5 @@ import client_config
 v_client = mini_vss.VSSClient(client_config.PLATFORM_CONFIG)
 v.client.upgrade_to_latest()
 ```
+
+#### *Easy sharing to you!*
